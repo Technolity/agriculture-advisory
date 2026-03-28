@@ -28,21 +28,34 @@ export interface Disease {
 
 export interface DetectionResult {
   disease: string
+  plant_identified: string
+  is_healthy: boolean
   confidence: number
+  severity?: 'LOW' | 'MEDIUM' | 'HIGH' | 'NONE'
+  urgency?: 'immediate' | 'within_week' | 'routine' | 'none'
+  symptoms: string[]
+  treatment_steps: string[]
+  prevention_tips: string[]
+  additional_notes: string
   treatment: string
-  severity?: 'LOW' | 'MEDIUM' | 'HIGH'
-  symptoms?: string[]
-  treatment_steps?: string[]
 }
 
 export interface WeatherData {
   temperature: number
   condition: string
   humidity: number
-  wind_speed: number
-  rain_risk: string
+  windSpeed: number
+  rainRisk: string
   location: string
   forecast: ForecastDay[]
+}
+
+export interface DetectionHistoryItem {
+  id: string
+  diseaseName: string
+  cropName: string
+  confidence: number
+  createdAt: string
 }
 
 export interface ForecastDay {

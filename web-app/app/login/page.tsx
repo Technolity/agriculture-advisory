@@ -7,12 +7,14 @@ import Link from 'next/link'
 import { Sprout } from 'lucide-react'
 import Cookies from 'js-cookie'
 import { toast } from 'sonner'
-import api from '@/lib/axios'
+import { loginUser } from '@/lib/backendApi'
+import { getApiErrorMessage } from '@/lib/apiError'
+import { saveAuthUser } from '@/hooks/useAuth'
 import LanguageSelector from '@/components/LanguageSelector'
 import { useState } from 'react'
 
 const schema = z.object({
-  phone: z.string().min(10, 'Enter a valid phone number'),
+  email: z.string().email('Enter a valid email address'),
   password: z.string().min(6, 'Minimum 6 characters'),
 })
 type FormData = z.infer<typeof schema>
@@ -27,12 +29,19 @@ export default function LoginPage() {
 
   const onSubmit = async (data: FormData) => {
     try {
-      const res = await api.post('/api/auth/login', data)
-      Cookies.set('token', res.data.token, { expires: 7 })
+      const payload = {
+        email: data.email.trim().toLowerCase(),
+        password: data.password,
+      }
+
+      const auth = await loginUser(payload)
+      Cookies.set('token', auth.token, { expires: 7 })
+      saveAuthUser(auth.user)
       toast.success('Welcome back!')
       router.push('/')
-    } catch {
-      toast.error('Invalid credentials. Please try again.')
+    } catch (error) {
+      console.error('[login] Submit failed', { message: error instanceof Error ? error.message : String(error) })
+      toast.error(getApiErrorMessage(error, 'Invalid credentials. Please try again.'))
     }
   }
 
@@ -61,19 +70,19 @@ export default function LoginPage() {
 
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium" style={{ color: 'var(--color-neutral-700)' }}>Phone Number</label>
+            <label className="text-sm font-medium" style={{ color: 'var(--color-neutral-700)' }}>Email Address</label>
             <input
-              {...register('phone')}
-              type="tel"
-              placeholder="+92 300 0000000"
+              {...register('email')}
+              type="email"
+              placeholder="farmer@example.com"
               className="h-12 px-4 rounded-xl text-sm outline-none focus:ring-2"
               style={{
                 backgroundColor: 'var(--color-neutral-100)',
                 color: 'var(--color-neutral-900)',
-                border: errors.phone ? '1.5px solid var(--color-danger)' : '1.5px solid transparent',
+                border: errors.email ? '1.5px solid var(--color-danger)' : '1.5px solid transparent',
               }}
             />
-            {errors.phone && <span className="text-xs" style={{ color: 'var(--color-danger)' }}>{errors.phone.message}</span>}
+            {errors.email && <span className="text-xs" style={{ color: 'var(--color-danger)' }}>{errors.email.message}</span>}
           </div>
 
           <div className="flex flex-col gap-1">

@@ -50,12 +50,16 @@ export class ConflictError extends AppError {
  */
 export function errorHandler(
   err: Error,
-  _req: Request,
+  req: Request,
   res: Response,
   _next: NextFunction
 ): void {
   // Zod validation errors
   if (err instanceof ZodError) {
+    logger.warn(
+      { route: req.path, method: req.method, fields: err.errors.map((e) => e.path.join('.')) },
+      'Request validation failed'
+    );
     res.status(400).json({
       success: false,
       error: {
@@ -72,6 +76,12 @@ export function errorHandler(
 
   // Custom application errors
   if (err instanceof AppError) {
+    const userId = (req as any).user?.userId;
+    const logLevel = err.statusCode >= 500 ? 'error' : 'warn';
+    logger[logLevel](
+      { userId, route: req.path, method: req.method, code: err.code, statusCode: err.statusCode, message: err.message },
+      'Application error'
+    );
     res.status(err.statusCode).json({
       success: false,
       error: {
@@ -83,7 +93,7 @@ export function errorHandler(
   }
 
   // Unknown errors - log and return 500
-  logger.error({ err, stack: err.stack }, 'Unhandled error');
+  logger.error({ err, stack: err.stack, userId: (req as any).user?.userId, route: req.path, method: req.method }, 'Unhandled error');
 
   res.status(500).json({
     success: false,

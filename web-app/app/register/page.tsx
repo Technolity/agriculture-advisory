@@ -7,11 +7,17 @@ import Link from 'next/link'
 import { Sprout } from 'lucide-react'
 import Cookies from 'js-cookie'
 import { toast } from 'sonner'
-import api from '@/lib/axios'
+import { registerUser } from '@/lib/backendApi'
+import { getApiErrorMessage } from '@/lib/apiError'
+import { saveAuthUser } from '@/hooks/useAuth'
 
 const schema = z.object({
   name: z.string().min(2, 'Enter your full name'),
-  phone: z.string().min(10, 'Enter a valid phone number'),
+  email: z.string().email('Enter a valid email address'),
+  phone: z.union([
+    z.string().regex(/^\+?[0-9 ]{10,20}$/, 'Enter a valid phone number'),
+    z.literal(''),
+  ]),
   password: z.string().min(8, 'Minimum 8 characters'),
   farm_name: z.string().optional(),
   region: z.string().min(1, 'Select your region'),
@@ -32,12 +38,22 @@ export default function RegisterPage() {
 
   const onSubmit = async (data: FormData) => {
     try {
-      const res = await api.post('/api/auth/register', data)
-      Cookies.set('token', res.data.token, { expires: 7 })
+      const payload = {
+        email: data.email.trim().toLowerCase(),
+        phone: data.phone.replace(/\s+/g, '') || undefined,
+        password: data.password,
+        name: data.name.trim(),
+        region: data.region,
+      }
+
+      const auth = await registerUser(payload)
+      Cookies.set('token', auth.token, { expires: 7 })
+      saveAuthUser(auth.user)
       toast.success('Account created!')
       router.push('/')
-    } catch {
-      toast.error('Registration failed. Try again.')
+    } catch (error) {
+      console.error('[register] Submit failed', { message: error instanceof Error ? error.message : String(error) })
+      toast.error(getApiErrorMessage(error, 'Registration failed. Try again.'))
     }
   }
 
@@ -74,8 +90,14 @@ export default function RegisterPage() {
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium" style={{ color: 'var(--color-neutral-700)' }}>Phone Number</label>
-            <input {...register('phone')} type="tel" placeholder="+92 300 0000000" className={inputClass} style={inputStyle(!!errors.phone)} />
+            <label className="text-sm font-medium" style={{ color: 'var(--color-neutral-700)' }}>Email Address</label>
+            <input {...register('email')} type="email" placeholder="farmer@example.com" className={inputClass} style={inputStyle(!!errors.email)} />
+            {errors.email && <span className="text-xs" style={{ color: 'var(--color-danger)' }}>{errors.email.message}</span>}
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium" style={{ color: 'var(--color-neutral-700)' }}>Phone Number (optional)</label>
+            <input {...register('phone')} type="tel" placeholder="+923000000000" className={inputClass} style={inputStyle(!!errors.phone)} />
             {errors.phone && <span className="text-xs" style={{ color: 'var(--color-danger)' }}>{errors.phone.message}</span>}
           </div>
 

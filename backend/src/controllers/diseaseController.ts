@@ -5,9 +5,10 @@
  */
 
 import { Response, NextFunction } from 'express';
-import { detectDisease } from '../services/diseaseService';
+import { detectDisease, getDetectionHistory } from '../services/diseaseService';
 import { AuthenticatedRequest } from '../types';
 import { ValidationError } from '../middleware/errorHandler';
+import { logger } from '../utils/logger';
 
 /**
  * POST /diseases/detect
@@ -31,6 +32,11 @@ export async function detect(
 
     const cropId = req.body.cropId as string | undefined;
 
+    logger.info(
+      { userId: req.user.userId, route: req.path, mimeType: file.mimetype, sizeBytes: file.buffer.length, cropId },
+      'Disease detection attempt'
+    );
+
     const result = await detectDisease(
       req.user.userId,
       file.buffer,
@@ -43,6 +49,31 @@ export async function detect(
       data: result || {
         message: 'Disease detection is being processed. Check back later for results.',
       },
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * GET /diseases/history
+ * Return recent detection history for the authenticated user.
+ */
+export async function getHistory(
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    if (!req.user) {
+      throw new ValidationError('Authentication required');
+    }
+
+    const history = await getDetectionHistory(req.user.userId);
+
+    res.status(200).json({
+      success: true,
+      data: history,
     });
   } catch (error) {
     next(error);

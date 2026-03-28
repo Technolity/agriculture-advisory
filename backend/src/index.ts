@@ -126,6 +126,19 @@ async function startServer(): Promise<void> {
   }
 }
 
-startServer();
+// On Vercel (serverless) skip app.listen — Vercel calls the exported handler directly.
+// On local / traditional servers, start normally.
+if (process.env.VERCEL) {
+  // Initialize connections once per cold start (no HTTP server needed)
+  (async () => {
+    await connectDatabase();
+    await initRedis();   // graceful — falls back if Redis URL is unavailable
+    initClaudeClient();
+    // Background jobs are not available in serverless — use Vercel Cron Jobs instead
+    logger.info('Serverless init complete');
+  })().catch((err) => logger.error({ err }, 'Serverless init failed'));
+} else {
+  startServer();
+}
 
 export default app;

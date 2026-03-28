@@ -85,8 +85,16 @@ export interface DiseaseDetectionInput {
 export interface DiseaseDetectionResult {
   diseaseId?: string;
   diseaseName: string;
+  plantIdentified: string;
+  isHealthy: boolean;
   confidence: number;
   severity: string;
+  urgency: string;
+  symptoms: string[];
+  treatmentSteps: string[];
+  preventionTips: string[];
+  additionalNotes: string;
+  /** @deprecated Use treatmentSteps[0] for backwards compat */
   treatment: string;
   treatmentUrdu?: string;
 }

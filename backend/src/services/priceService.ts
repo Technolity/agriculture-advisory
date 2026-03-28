@@ -24,15 +24,21 @@ export async function getMarketPrices(region: string, cropIds?: string[]) {
     where.cropId = { in: cropIds };
   }
 
-  const prices = await prisma.marketPrice.findMany({
-    where,
-    include: {
-      crop: {
-        select: { id: true, name: true, nameUrdu: true, namePunjabi: true },
+  let prices;
+  try {
+    prices = await prisma.marketPrice.findMany({
+      where,
+      include: {
+        crop: {
+          select: { id: true, name: true, nameUrdu: true, namePunjabi: true },
+        },
       },
-    },
-    orderBy: { lastUpdated: 'desc' },
-  });
+      orderBy: { lastUpdated: 'desc' },
+    });
+  } catch (error) {
+    logger.error({ error, region, cropIds }, 'Market prices DB query failed');
+    throw error;
+  }
 
   logger.debug({ region, count: prices.length }, 'Market prices retrieved');
 
@@ -56,24 +62,30 @@ export async function updateMarketPrice(
 ) {
   const prisma = getPrismaClient();
 
-  const price = await prisma.marketPrice.upsert({
-    where: {
-      unique_crop_market: { cropId, marketName },
-    },
-    update: {
-      pricePerUnit,
-      marketRegion,
-      unit,
-      lastUpdated: new Date(),
-    },
-    create: {
-      cropId,
-      marketName,
-      marketRegion,
-      pricePerUnit,
-      unit,
-    },
-  });
+  let price;
+  try {
+    price = await prisma.marketPrice.upsert({
+      where: {
+        unique_crop_market: { cropId, marketName },
+      },
+      update: {
+        pricePerUnit,
+        marketRegion,
+        unit,
+        lastUpdated: new Date(),
+      },
+      create: {
+        cropId,
+        marketName,
+        marketRegion,
+        pricePerUnit,
+        unit,
+      },
+    });
+  } catch (error) {
+    logger.error({ error, cropId, marketName }, 'Market price upsert failed');
+    throw error;
+  }
 
   logger.info({ cropId, marketName, pricePerUnit }, 'Market price updated');
   return price;

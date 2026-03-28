@@ -25,6 +25,7 @@ export async function createListing(
       return;
     }
 
+    logger.info({ userId, route: req.path, cropId: req.body?.cropId }, 'Create listing attempt');
     const listing = await marketplaceService.createListing(userId, req.body);
     res.status(201).json(listing);
   } catch (error) {
@@ -54,6 +55,7 @@ export async function getListings(
       limit: req.query.limit ? parseInt(req.query.limit as string) : 20,
     };
 
+    logger.info({ route: req.path, filters }, 'Get listings request');
     const result = await marketplaceService.getListings(filters);
     res.json(result);
   } catch (error) {
@@ -73,6 +75,7 @@ export async function getListingById(
 ): Promise<void> {
   try {
     const { id } = req.params;
+    logger.info({ route: req.path, listingId: id }, 'Get listing by ID request');
     const listing = await marketplaceService.getListingById(id);
     res.json(listing);
   } catch (error) {
@@ -98,6 +101,7 @@ export async function updateListing(
     }
 
     const { id } = req.params;
+    logger.info({ userId, route: req.path, listingId: id }, 'Update listing attempt');
     const updated = await marketplaceService.updateListing(id, userId, req.body);
     res.json(updated);
   } catch (error) {
@@ -123,6 +127,7 @@ export async function deleteListing(
     }
 
     const { id } = req.params;
+    logger.info({ userId, route: req.path, listingId: id }, 'Delete listing attempt');
     await marketplaceService.deleteListing(id, userId);
     res.status(204).send();
   } catch (error) {
@@ -148,6 +153,7 @@ export async function contactSeller(
     }
 
     const { id } = req.params;
+    logger.info({ userId, route: req.path, listingId: id }, 'Contact seller reveal attempt');
     const contact = await marketplaceService.revealContact(id, userId);
     res.json(contact);
   } catch (error) {

@@ -67,33 +67,39 @@ export async function createListing(
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + 30);
 
-  const listing = await prisma.marketplaceListing.create({
-    data: {
-      sellerId,
-      cropId: input.cropId,
-      quantity: input.quantity,
-      unit: input.unit,
-      pricePerUnit: input.pricePerUnit,
-      location: input.location,
-      description: input.description,
-      contactPhone: input.contactPhone,
-      contactEmail: input.contactEmail,
-      imageUrls: input.imageUrls || [],
-      status: 'active',
-      expiresAt,
-    },
-    include: {
-      crop: true,
-      seller: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          region: true,
+  let listing;
+  try {
+    listing = await prisma.marketplaceListing.create({
+      data: {
+        sellerId,
+        cropId: input.cropId,
+        quantity: input.quantity,
+        unit: input.unit,
+        pricePerUnit: input.pricePerUnit,
+        location: input.location,
+        description: input.description,
+        contactPhone: input.contactPhone,
+        contactEmail: input.contactEmail,
+        imageUrls: input.imageUrls || [],
+        status: 'active',
+        expiresAt,
+      },
+      include: {
+        crop: true,
+        seller: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            region: true,
+          },
         },
       },
-    },
-  });
+    });
+  } catch (error) {
+    logger.error({ error, sellerId, cropId: input.cropId }, 'Create listing DB error');
+    throw error;
+  }
 
   logger.info(
     { listingId: listing.id, sellerId, crop: input.cropId },
@@ -143,27 +149,33 @@ export async function getListings(filters: ListingFilters) {
   }
 
   // Fetch listings and total count
-  const [listings, total] = await Promise.all([
-    prisma.marketplaceListing.findMany({
-      where,
-      include: {
-        crop: {
-          select: { id: true, name: true, nameUrdu: true, namePunjabi: true },
-        },
-        seller: {
-          select: {
-            id: true,
-            name: true,
-            region: true,
+  let listings, total;
+  try {
+    [listings, total] = await Promise.all([
+      prisma.marketplaceListing.findMany({
+        where,
+        include: {
+          crop: {
+            select: { id: true, name: true, nameUrdu: true, namePunjabi: true },
+          },
+          seller: {
+            select: {
+              id: true,
+              name: true,
+              region: true,
+            },
           },
         },
-      },
-      orderBy: { createdAt: 'desc' },
-      skip,
-      take: limit,
-    }),
-    prisma.marketplaceListing.count({ where }),
-  ]);
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      prisma.marketplaceListing.count({ where }),
+    ]);
+  } catch (error) {
+    logger.error({ error, filters }, 'Get listings DB query failed');
+    throw error;
+  }
 
   logger.debug(
     { filters, total, returned: listings.length },
@@ -245,20 +257,26 @@ export async function updateListing(
     throw new AppError('Unauthorized: You can only edit your own listings', 403);
   }
 
-  const updated = await prisma.marketplaceListing.update({
-    where: { id },
-    data: input,
-    include: {
-      crop: true,
-      seller: {
-        select: {
-          id: true,
-          name: true,
-          region: true,
+  let updated;
+  try {
+    updated = await prisma.marketplaceListing.update({
+      where: { id },
+      data: input,
+      include: {
+        crop: true,
+        seller: {
+          select: {
+            id: true,
+            name: true,
+            region: true,
+          },
         },
       },
-    },
-  });
+    });
+  } catch (error) {
+    logger.error({ error, listingId: id, sellerId }, 'Update listing DB error');
+    throw error;
+  }
 
   logger.info({ listingId: id, sellerId }, 'Marketplace listing updated');
 

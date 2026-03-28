@@ -8,6 +8,7 @@ import { Response, NextFunction } from 'express';
 import { processSyncQueue } from '../services/syncService';
 import { AuthenticatedRequest } from '../types';
 import { ValidationError } from '../middleware/errorHandler';
+import { logger } from '../utils/logger';
 
 /**
  * POST /sync/queue
@@ -24,6 +25,8 @@ export async function processQueue(
     }
 
     const { items } = req.body;
+
+    logger.info({ userId: req.user.userId, route: req.path, itemCount: items?.length ?? 0 }, 'Sync queue processing attempt');
 
     const result = await processSyncQueue(req.user.userId, items);
 

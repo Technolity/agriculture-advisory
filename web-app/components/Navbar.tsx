@@ -1,13 +1,14 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, ScanLine, BookOpen, BarChart2, Settings, Sprout } from 'lucide-react'
+import { Home, ScanLine, BookOpen, BarChart2, Settings, Sprout, ShoppingBag } from 'lucide-react'
 
 const navItems = [
   { href: '/', label: 'Home', icon: Home },
   { href: '/detect', label: 'Detect', icon: ScanLine },
   { href: '/guide', label: 'Crops', icon: BookOpen },
   { href: '/prices', label: 'Prices', icon: BarChart2 },
+  { href: '/marketplace', label: 'Market', icon: ShoppingBag },
   { href: '/settings', label: 'Settings', icon: Settings },
 ]
 

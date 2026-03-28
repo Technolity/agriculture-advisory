@@ -30,7 +30,7 @@ const envSchema = z.object({
 
   // Server
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-  PORT: z.coerce.number().default(5000),
+  PORT: z.preprocess(v => (v === '' || v === undefined ? undefined : v), z.coerce.number().positive().default(5000)),
   HOST: z.string().default('0.0.0.0'),
 
   // Rate Limiting

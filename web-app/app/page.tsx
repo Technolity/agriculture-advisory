@@ -6,7 +6,8 @@ import { Bell, User, ScanLine, CloudSun, BookOpen, BarChart2 } from 'lucide-reac
 import Link from 'next/link'
 import { useAuth } from '@/hooks/useAuth'
 import WeatherWidget from '@/components/WeatherWidget'
-import api from '@/lib/axios'
+import { fetchDetectionHistory, fetchWeather } from '@/lib/backendApi'
+import type { DetectionHistoryItem } from '@/types'
 
 const quickActions = [
   { label: 'Disease Detection', icon: ScanLine, href: '/detect', bg: 'var(--color-danger-light)', color: 'var(--color-danger)' },
@@ -32,13 +33,13 @@ export default function HomePage() {
 
   const { data: weather } = useQuery({
     queryKey: ['weather'],
-    queryFn: () => api.get('/api/weather?latitude=34.08&longitude=74.79').then(r => r.data),
+    queryFn: () => fetchWeather(34.08, 74.79),
     enabled: isAuthenticated,
   })
 
-  const { data: detections } = useQuery({
+  const { data: detections } = useQuery<DetectionHistoryItem[]>({
     queryKey: ['detections'],
-    queryFn: () => api.get('/api/diseases/history').then(r => r.data),
+    queryFn: fetchDetectionHistory,
     enabled: isAuthenticated,
   })
 
@@ -69,8 +70,10 @@ export default function HomePage() {
         temperature={weather?.temperature ?? 18}
         condition={weather?.condition ?? 'Partly Cloudy'}
         humidity={weather?.humidity ?? 72}
-        windSpeed={weather?.wind_speed ?? 12}
+        windSpeed={weather?.windSpeed ?? 12}
+        rainRisk={weather?.rainRisk}
         location={user?.region ? `${user.region}` : 'Srinagar, Kashmir'}
+        forecast={weather?.forecast}
       />
 
       {/* Quick Actions */}
@@ -104,13 +107,13 @@ export default function HomePage() {
       {/* Recent Detections */}
       <div>
         <h2 className="text-sm font-semibold mb-3" style={{ color: 'var(--color-neutral-700)' }}>Recent Detections</h2>
-        {detections?.length > 0 ? (
+        {detections && detections.length > 0 ? (
           <div className="flex flex-col gap-2">
-            {detections.slice(0, 3).map((d: { id: string; disease_name: string; confidence: number; crop_name: string; created_at: string }) => (
+            {detections.slice(0, 3).map((d) => (
               <div key={d.id} className="flex items-center justify-between p-3 rounded-xl" style={{ backgroundColor: 'var(--color-white)' }}>
                 <div>
-                  <p className="text-sm font-semibold" style={{ color: 'var(--color-neutral-900)' }}>{d.disease_name}</p>
-                  <p className="text-xs" style={{ color: 'var(--color-neutral-500)' }}>{d.crop_name}</p>
+                  <p className="text-sm font-semibold" style={{ color: 'var(--color-neutral-900)' }}>{d.diseaseName}</p>
+                  <p className="text-xs" style={{ color: 'var(--color-neutral-500)' }}>{d.cropName}</p>
                 </div>
                 <span className="text-xs font-semibold px-2 py-1 rounded-full" style={{ backgroundColor: 'var(--color-primary-pale)', color: 'var(--color-primary)' }}>
                   {Math.round(d.confidence * 100)}%

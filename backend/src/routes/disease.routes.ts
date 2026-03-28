@@ -5,7 +5,7 @@
 
 import { Router } from 'express';
 import multer from 'multer';
-import { detect } from '../controllers/diseaseController';
+import { detect, getHistory } from '../controllers/diseaseController';
 import { authenticate } from '../middleware/auth';
 import { uploadRateLimiter } from '../middleware/rateLimit';
 import { MAX_IMAGE_SIZE_KB } from '../utils/constants';
@@ -26,6 +26,9 @@ const upload = multer({
 });
 
 const router = Router();
+
+/** GET /diseases/history - Fetch recent detections for the authenticated user */
+router.get('/history', authenticate, getHistory);
 
 /** POST /diseases/detect - Upload image for disease detection */
 router.post('/detect', authenticate, uploadRateLimiter, upload.single('image'), detect);

@@ -6,6 +6,7 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { ZodSchema, ZodError } from 'zod';
+import { logger } from '../utils/logger';
 
 /**
  * Create validation middleware for request body
@@ -18,6 +19,10 @@ export function validateBody(schema: ZodSchema) {
       next();
     } catch (error) {
       if (error instanceof ZodError) {
+        logger.warn(
+          { route: req.path, method: req.method, fields: error.errors.map((e) => e.path.join('.')) },
+          'Body validation failed'
+        );
         res.status(400).json({
           success: false,
           error: {
@@ -47,6 +52,10 @@ export function validateQuery(schema: ZodSchema) {
       next();
     } catch (error) {
       if (error instanceof ZodError) {
+        logger.warn(
+          { route: req.path, method: req.method, fields: error.errors.map((e) => e.path.join('.')) },
+          'Query validation failed'
+        );
         res.status(400).json({
           success: false,
           error: {
@@ -76,6 +85,10 @@ export function validateParams(schema: ZodSchema) {
       next();
     } catch (error) {
       if (error instanceof ZodError) {
+        logger.warn(
+          { route: req.path, method: req.method, fields: error.errors.map((e) => e.path.join('.')) },
+          'Params validation failed'
+        );
         res.status(400).json({
           success: false,
           error: {

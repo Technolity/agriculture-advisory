@@ -7,6 +7,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { getMarketPrices } from '../services/priceService';
 import { ValidationError } from '../middleware/errorHandler';
+import { logger } from '../utils/logger';
 
 /**
  * GET /prices?region=Kashmir&crop_ids=id1,id2
@@ -21,6 +22,8 @@ export async function getPrices(req: Request, res: Response, next: NextFunction)
 
     const cropIdsParam = req.query.crop_ids as string | undefined;
     const cropIds = cropIdsParam ? cropIdsParam.split(',').map((id) => id.trim()) : undefined;
+
+    logger.info({ route: req.path, region, cropIds }, 'Market prices request');
 
     const prices = await getMarketPrices(region, cropIds);
 

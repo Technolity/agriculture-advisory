@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { TrendingUp, TrendingDown, Wheat } from 'lucide-react'
 import LoadingSkeleton from '@/components/LoadingSkeleton'
-import api from '@/lib/axios'
+import { fetchMarketPrices } from '@/lib/backendApi'
 import { MarketPrice } from '@/types'
 
 const regions = ['Kashmir', 'Punjab', 'Sindh', 'KPK']
@@ -13,7 +13,7 @@ export default function PricesPage() {
 
   const { data: prices, isLoading } = useQuery<MarketPrice[]>({
     queryKey: ['prices', region],
-    queryFn: () => api.get(`/api/prices?region=${region}`).then(r => r.data.prices || r.data),
+    queryFn: () => fetchMarketPrices(region),
   })
 
   return (

@@ -8,6 +8,7 @@ import { Request, Response, NextFunction } from 'express';
 import { listCrops, getCropById } from '../services/cropService';
 import { getDiseasesByCrop } from '../services/diseaseService';
 import { NotFoundError } from '../middleware/errorHandler';
+import { logger } from '../utils/logger';
 
 /**
  * GET /crops
@@ -25,6 +26,8 @@ export async function getCrops(req: Request, res: Response, next: NextFunction):
       page: Number(req.query.page) || 1,
       limit: Number(req.query.limit) || 20,
     };
+
+    logger.info({ route: req.path, filters, pagination }, 'Crops list request');
 
     const result = await listCrops(filters, pagination);
 
@@ -45,6 +48,8 @@ export async function getCrops(req: Request, res: Response, next: NextFunction):
 export async function getCropDiseases(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const { id } = req.params;
+
+    logger.info({ route: req.path, cropId: id }, 'Crop diseases request');
 
     const crop = await getCropById(id);
     if (!crop) {

@@ -39,27 +39,33 @@ export async function registerUser(input: RegisterInput) {
   const passwordHash = await bcrypt.hash(input.password, BCRYPT_SALT_ROUNDS);
 
   // Create user
-  const user = await prisma.user.create({
-    data: {
-      email: input.email,
-      phone: input.phone,
-      passwordHash,
-      name: input.name,
-      language: input.language || 'en',
-      region: input.region,
-      latitude: input.latitude,
-      longitude: input.longitude,
-      deviceId: input.deviceId,
-    },
-    select: {
-      id: true,
-      email: true,
-      name: true,
-      language: true,
-      region: true,
-      createdAt: true,
-    },
-  });
+  let user;
+  try {
+    user = await prisma.user.create({
+      data: {
+        email: input.email,
+        phone: input.phone,
+        passwordHash,
+        name: input.name,
+        language: input.language || 'en',
+        region: input.region,
+        latitude: input.latitude,
+        longitude: input.longitude,
+        deviceId: input.deviceId,
+      },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        language: true,
+        region: true,
+        createdAt: true,
+      },
+    });
+  } catch (error) {
+    logger.error({ error, email: input.email }, 'User registration DB error');
+    throw error;
+  }
 
   // Generate JWT
   const token = generateToken({ userId: user.id, email: user.email });
@@ -97,25 +103,62 @@ export async function loginUser(input: LoginInput) {
   const isPasswordValid = await bcrypt.compare(input.password, user.passwordHash);
 
   if (!isPasswordValid) {
+    logger.warn({ email: input.email }, 'Invalid password attempt');
     throw new AppError('Invalid credentials', 401, 'INVALID_CREDENTIALS');
   }
 
   const token = generateToken({ userId: user.id, email: user.email });
 
   // Create session
-  await prisma.session.create({
-    data: {
-      userId: user.id,
-      token,
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
-      deviceId: input.deviceId,
-    },
-  });
+  try {
+    await prisma.session.create({
+      data: {
+        userId: user.id,
+        token,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+        deviceId: input.deviceId,
+      },
+    });
+  } catch (error) {
+    logger.error({ error, userId: user.id }, 'Session creation DB error');
+    throw error;
+  }
 
   logger.info({ userId: user.id }, 'User logged in');
 
   const { passwordHash: _, ...userData } = user;
   return { user: userData, token };
+}
+
+/**
+ * Get a user by ID (for profile endpoint)
+ * @param userId - The user's UUID
+ * @returns User profile without password hash
+ */
+export async function getUserById(userId: string) {
+  const prisma = getPrismaClient();
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      phone: true,
+      language: true,
+      region: true,
+      latitude: true,
+      longitude: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+
+  if (!user) {
+    throw new NotFoundError('User');
+  }
+
+  return user;
 }
 
 /**

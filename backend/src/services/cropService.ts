@@ -41,20 +41,26 @@ export async function listCrops(
     ];
   }
 
-  const [crops, total] = await Promise.all([
-    prisma.crop.findMany({
-      where,
-      skip,
-      take: limit,
-      orderBy: { name: 'asc' },
-      include: {
-        _count: {
-          select: { diseases: true },
+  let crops, total;
+  try {
+    [crops, total] = await Promise.all([
+      prisma.crop.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { name: 'asc' },
+        include: {
+          _count: {
+            select: { diseases: true },
+          },
         },
-      },
-    }),
-    prisma.crop.count({ where }),
-  ]);
+      }),
+      prisma.crop.count({ where }),
+    ]);
+  } catch (error) {
+    logger.error({ error, filters, pagination }, 'Crops DB query failed');
+    throw error;
+  }
 
   logger.debug({ filters, total }, 'Crops listed');
 
@@ -72,18 +78,24 @@ export async function listCrops(
 export async function getCropById(cropId: string) {
   const prisma = getPrismaClient();
 
-  const crop = await prisma.crop.findUnique({
-    where: { id: cropId },
-    include: {
-      diseases: {
-        orderBy: { severityLevel: 'desc' },
+  let crop;
+  try {
+    crop = await prisma.crop.findUnique({
+      where: { id: cropId },
+      include: {
+        diseases: {
+          orderBy: { severityLevel: 'desc' },
+        },
+        marketPrices: {
+          orderBy: { lastUpdated: 'desc' },
+          take: 5,
+        },
       },
-      marketPrices: {
-        orderBy: { lastUpdated: 'desc' },
-        take: 5,
-      },
-    },
-  });
+    });
+  } catch (error) {
+    logger.error({ error, cropId }, 'Crop lookup DB error');
+    throw error;
+  }
 
   return crop;
 }

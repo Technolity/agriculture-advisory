@@ -5,7 +5,9 @@
  */
 
 import rateLimit from 'express-rate-limit';
+import { Request, Response } from 'express';
 import { env } from '../config/env';
+import { logger } from '../utils/logger';
 
 /**
  * Default rate limiter
@@ -16,12 +18,9 @@ export const defaultRateLimiter = rateLimit({
   max: env.RATE_LIMIT_MAX,
   standardHeaders: true,
   legacyHeaders: false,
-  message: {
-    success: false,
-    error: {
-      code: 'RATE_LIMIT_EXCEEDED',
-      message: 'Too many requests. Please try again later.',
-    },
+  handler: (req: Request, res: Response) => {
+    logger.warn({ ip: req.ip, route: req.path, method: req.method }, 'Rate limit exceeded');
+    res.status(429).json({ success: false, error: { code: 'RATE_LIMIT_EXCEEDED', message: 'Too many requests. Please try again later.' } });
   },
 });
 
@@ -34,12 +33,9 @@ export const authRateLimiter = rateLimit({
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
-  message: {
-    success: false,
-    error: {
-      code: 'RATE_LIMIT_EXCEEDED',
-      message: 'Too many authentication attempts. Please try again later.',
-    },
+  handler: (req: Request, res: Response) => {
+    logger.warn({ ip: req.ip, route: req.path, method: req.method }, 'Auth rate limit exceeded');
+    res.status(429).json({ success: false, error: { code: 'RATE_LIMIT_EXCEEDED', message: 'Too many authentication attempts. Please try again later.' } });
   },
 });
 
@@ -52,11 +48,8 @@ export const uploadRateLimiter = rateLimit({
   max: 20,
   standardHeaders: true,
   legacyHeaders: false,
-  message: {
-    success: false,
-    error: {
-      code: 'RATE_LIMIT_EXCEEDED',
-      message: 'Too many upload requests. Please try again later.',
-    },
+  handler: (req: Request, res: Response) => {
+    logger.warn({ ip: req.ip, route: req.path, method: req.method }, 'Upload rate limit exceeded');
+    res.status(429).json({ success: false, error: { code: 'RATE_LIMIT_EXCEEDED', message: 'Too many upload requests. Please try again later.' } });
   },
 });

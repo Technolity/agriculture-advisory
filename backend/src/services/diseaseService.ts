@@ -47,12 +47,20 @@ export async function detectDisease(
 
   if (existingDetection && existingDetection.disease) {
     logger.info({ imageHash }, 'Returning cached detection for duplicate image');
+    const cachedTreatment = existingDetection.disease.treatment;
     return {
       diseaseId: existingDetection.disease.id,
       diseaseName: existingDetection.disease.name,
+      plantIdentified: 'Unknown',
+      isHealthy: false,
       confidence: existingDetection.claudeConfidence || existingDetection.tfliteConfidence || 0,
       severity: existingDetection.disease.severityLevel,
-      treatment: existingDetection.disease.treatment,
+      urgency: 'within_week',
+      symptoms: [],
+      treatmentSteps: cachedTreatment ? [cachedTreatment] : [],
+      preventionTips: [],
+      additionalNotes: 'Result from previous analysis of the same image.',
+      treatment: cachedTreatment,
       treatmentUrdu: existingDetection.disease.treatmentUrdu || undefined,
     };
   }
@@ -67,11 +75,12 @@ export async function detectDisease(
   // Call OpenAI API for analysis
   const aiResult = await analyzeImage(
     imageBuffer.toString('base64'),
+    mimeType,
     cropName
   );
 
   if (!aiResult) {
-    logger.warn({ userId, cropId }, 'AI analysis failed to return result');
+    logger.warn({ userId, cropId, mimeType, imageHash }, 'AI analysis failed to return result');
     return null;
   }
 
@@ -103,29 +112,45 @@ export async function detectDisease(
   }
 
   // Create detection record
-  const detection = await prisma.diseaseDetection.create({
-    data: {
-      userId,
-      cropId,
-      diseaseId,
-      imageHash,
-      claudeConfidence: aiResult.confidence,
-    },
-    include: { disease: true },
-  });
+  let detection;
+  try {
+    detection = await prisma.diseaseDetection.create({
+      data: {
+        userId,
+        cropId,
+        diseaseId,
+        imageHash,
+        claudeConfidence: aiResult.confidence,
+      },
+      include: { disease: true },
+    });
+  } catch (error) {
+    logger.error({ error, userId, cropId, imageHash }, 'Disease detection record creation failed');
+    throw error;
+  }
 
   logger.info(
     { userId, cropId, diseaseId, confidence: aiResult.confidence },
     'Disease detection completed'
   );
 
+  const treatmentFromDb: string | undefined = disease?.treatment;
+  const firstTreatmentStep = aiResult.treatment_steps?.[0] ?? 'Consult a local agronomist';
+
   // Return the result
   return {
-    diseaseId: diseaseId,
+    diseaseId,
     diseaseName: disease?.name || aiResult.disease,
+    plantIdentified: aiResult.plant_identified,
+    isHealthy: aiResult.is_healthy,
     confidence: aiResult.confidence,
-    severity: disease?.severityLevel || 'unknown',
-    treatment: disease?.treatment || aiResult.treatment,
+    severity: disease?.severityLevel || aiResult.severity,
+    urgency: aiResult.urgency,
+    symptoms: aiResult.symptoms,
+    treatmentSteps: aiResult.treatment_steps,
+    preventionTips: aiResult.prevention_tips,
+    additionalNotes: aiResult.additional_notes,
+    treatment: treatmentFromDb || firstTreatmentStep,
     treatmentUrdu: disease?.treatmentUrdu,
   };
 }
@@ -138,12 +163,49 @@ export async function detectDisease(
 export async function getDiseasesByCrop(cropId: string) {
   const prisma = getPrismaClient();
 
-  const diseases = await prisma.disease.findMany({
-    where: { cropId },
-    orderBy: { severityLevel: 'desc' },
-  });
+  let diseases;
+  try {
+    diseases = await prisma.disease.findMany({
+      where: { cropId },
+      orderBy: { severityLevel: 'desc' },
+    });
+  } catch (error) {
+    logger.error({ error, cropId }, 'Diseases by crop DB query failed');
+    throw error;
+  }
 
   return diseases;
+}
+
+/**
+ * Get recent disease detection history for a user.
+ * @param userId - Authenticated user ID
+ * @param limit - Maximum number of records to return
+ */
+export async function getDetectionHistory(userId: string, limit = 10) {
+  const prisma = getPrismaClient();
+
+  const detections = await prisma.diseaseDetection.findMany({
+    where: { userId },
+    include: {
+      crop: {
+        select: { name: true },
+      },
+      disease: {
+        select: { name: true },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+    take: limit,
+  });
+
+  return detections.map((detection) => ({
+    id: detection.id,
+    diseaseName: detection.disease?.name || 'Unknown disease',
+    cropName: detection.crop?.name || 'Unknown crop',
+    confidence: detection.claudeConfidence || detection.tfliteConfidence || 0,
+    createdAt: detection.createdAt.toISOString(),
+  }));
 }
 
 /**

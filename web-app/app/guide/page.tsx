@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { X } from 'lucide-react'
 import CropCard from '@/components/CropCard'
 import LoadingSkeleton from '@/components/LoadingSkeleton'
-import api from '@/lib/axios'
+import { fetchCrops } from '@/lib/backendApi'
 import { Crop } from '@/types'
 
 const seasons = ['All', 'Rabi', 'Kharif', 'Zaid']
@@ -15,8 +15,7 @@ export default function GuidePage() {
 
   const { data: crops, isLoading } = useQuery<Crop[]>({
     queryKey: ['crops', season],
-    queryFn: () =>
-      api.get(`/api/crops${season !== 'All' ? `?season=${season}` : ''}`).then(r => r.data.crops || r.data),
+    queryFn: () => fetchCrops(season),
   })
 
   return (
