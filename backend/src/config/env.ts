@@ -11,6 +11,9 @@ import { z } from 'zod';
 const envSchema = z.object({
   // Database
   DATABASE_URL: z.string().url('DATABASE_URL must be a valid PostgreSQL URL'),
+  DATABASE_CONNECT_TIMEOUT_SEC: z.coerce.number().int().positive().default(30),
+  DATABASE_CONNECT_RETRIES: z.coerce.number().int().positive().default(5),
+  DATABASE_CONNECT_RETRY_DELAY_MS: z.coerce.number().int().positive().default(2000),
 
   // Redis
   REDIS_URL: z.string().url().default('redis://localhost:6379'),

@@ -7,7 +7,7 @@
 import express from 'express';
 import helmet from 'helmet';
 import { env } from './config/env';
-import { getPrismaClient, disconnectDatabase } from './config/database';
+import { connectDatabase, disconnectDatabase } from './config/database';
 import { initRedis, disconnectRedis } from './config/redis';
 import { initClaudeClient } from './config/claudeClient';
 import { corsMiddleware } from './middleware/cors';
@@ -75,9 +75,7 @@ app.use(errorHandler);
 async function startServer(): Promise<void> {
   try {
     // Initialize database
-    const prisma = getPrismaClient();
-    await prisma.$connect();
-    logger.info('✅ Database connected');
+    await connectDatabase();
 
     // Initialize Redis (optional - graceful fallback)
     await initRedis();
