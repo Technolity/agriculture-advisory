@@ -16,26 +16,18 @@ let redisClient: RedisClientType;
  */
 export async function initRedis(): Promise<RedisClientType | null> {
   try {
-    redisClient = createClient({
-      url: env.REDIS_URL,
-    });
+    const client = createClient({ url: env.REDIS_URL, socket: { connectTimeout: 3000 } });
 
-    redisClient.on('error', (err) => {
-      logger.error({ err }, 'Redis Client Error');
-    });
+    // Silence reconnection spam — Redis is optional in dev
+    client.on('error', () => {});
+    client.on('reconnecting', () => {});
 
-    redisClient.on('connect', () => {
-      logger.info('Redis Client connected');
-    });
-
-    redisClient.on('reconnecting', () => {
-      logger.warn('Redis Client reconnecting...');
-    });
-
-    await redisClient.connect();
+    await client.connect();
+    redisClient = client as RedisClientType;
+    logger.info('Redis Client connected');
     return redisClient;
-  } catch (error) {
-    logger.warn({ error }, 'Redis connection failed - running without cache');
+  } catch {
+    logger.warn('Redis unavailable - running without cache (OK for dev)');
     return null;
   }
 }
