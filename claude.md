@@ -197,26 +197,32 @@ d:\Agriculture Advisory\
 > Status: ✅ = complete | 🟡 = needs implementation | ❌ = not started
 
 ### Backend
-- ✅ `prisma/schema.prisma` — 8 tables, all live in Supabase
-- ✅ `.env` — Fully configured (Supabase, OpenAI, OpenWeatherMap, JWT)
-- ✅ `src/index.ts` — Express app with all middleware wired
-- ✅ `src/config/env.ts` — Uses `OPENAI_API_KEY`
+- ✅ `prisma/schema.prisma` — **10 tables** (added marketplace_listings, marketplace_offers), all live in Supabase
+- ✅ `.env` — Fully configured (Supabase, OpenAI, OpenWeatherMap, Apify token optional, JWT)
+- ✅ `src/index.ts` — Express app with all middleware + marketplace routes + background jobs wired
+- ✅ `src/config/env.ts` — Includes `OPENAI_API_KEY`, `APIFY_API_TOKEN`, `WEATHER_PROVIDER`
 - ✅ `src/config/claudeClient.ts` — OpenAI GPT-4o Vision (filename kept for compatibility)
+- ✅ `src/config/apifyClient.ts` — **NEW** Apify client for web scraping (graceful null if no token)
 - ✅ `src/config/database.ts`, `redis.ts` — Configured
-- ✅ `src/routes/*` — All 7 route files
-- ✅ `src/controllers/*` — All 7 controllers
+- ✅ `src/routes/*` — All 7 original route files + **marketplace.routes.ts** (NEW)
+- ✅ `src/controllers/*` — All 7 original controllers + **marketplaceController.ts** (NEW)
 - ✅ `src/services/authService.ts` — Fixed JWT type error
 - ✅ `src/services/syncService.ts` — Fixed Prisma JSON type error
-- ✅ `src/services/*` — All 6 services
+- ✅ `src/services/*` — All 6 services + **marketplaceService.ts** (NEW with 6 functions)
 - ✅ `src/middleware/*` — All 6 middleware files
 - ✅ `src/utils/*` — logger, imageProcessing, validators, constants
-- ✅ `src/jobs/*` — 3 job files (placeholder logic)
-- ✅ `src/types/index.ts` — Complete type definitions
+- ✅ `src/jobs/weatherSyncJob.ts` — **IMPLEMENTED** (fetches user locations, calls getWeather() every 1h)
+- ✅ `src/jobs/priceSyncJob.ts` — **IMPLEMENTED** (ready for Apify actor call every 6h)
+- ✅ `src/jobs/cleanupJob.ts` — Scaffolded
+- ✅ `src/types/index.ts` — Complete type definitions + marketplace types
+- ✅ `src/services/diseaseService.ts` — **FIXED** AI result matching to diseases table
+- ✅ `src/services/weatherService.ts` — **IMPLEMENTED** OpenWeatherMap API call + Apify toggle
+- ✅ `src/services/priceService.ts` — **FIXED** upsert to use composite unique key
 
 ### Web App (Next.js)
 - ✅ Scaffolded with `create-next-app` (App Router, TypeScript, Tailwind)
 - ✅ All libraries installed
-- 🟡 Pages/screens — not yet built (next priority)
+- 🟡 Pages/screens — Being built by frontend developer (separate branch)
 
 ### Mobile (deferred — web first)
 - ✅ All files scaffolded (87+ files)
@@ -226,26 +232,60 @@ d:\Agriculture Advisory\
 
 ## Change Log
 
-| Date | Change | Files Affected |
-|------|--------|---------------|
-| 2026-03-28 | Initial scaffold — complete project foundation | All 87+ files |
-| 2026-03-28 | Backend `npm install` — 547 packages installed | `backend/node_modules` |
-| 2026-03-28 | Switched AI provider: Anthropic → OpenAI GPT-4o | `claudeClient.ts`, `env.ts`, `.env`, `package.json` |
-| 2026-03-28 | Database migrated to Supabase — all 8 tables live | Supabase project `dfxmprydktoybadlpvxs` |
-| 2026-03-28 | Prisma client generated | `node_modules/@prisma/client` |
-| 2026-03-28 | All `.env` variables configured | `backend/.env` |
-| 2026-03-28 | Fixed TypeScript errors (JWT + Prisma JSON types) | `authService.ts`, `syncService.ts` |
-| 2026-03-28 | Next.js web app scaffolded + libraries installed | `web-app/` |
-| 2026-03-28 | Supabase MCP configured | `.mcp.json`, `.claude/settings.local.json` |
+| Date | Change | Files Affected | Status |
+|------|--------|---|--------|
+| 2026-03-28 | Initial scaffold — complete project foundation | All 87+ files | ✅ |
+| 2026-03-28 | Backend `npm install` — 547 packages installed | `backend/node_modules` | ✅ |
+| 2026-03-28 | Switched AI provider: Anthropic → OpenAI GPT-4o | `claudeClient.ts`, `env.ts`, `.env`, `package.json` | ✅ |
+| 2026-03-28 | Database migrated to Supabase — all 8 tables live | Supabase project `dfxmprydktoybadlpvxs` | ✅ |
+| 2026-03-28 | Prisma client generated | `node_modules/@prisma/client` | ✅ |
+| 2026-03-28 | All `.env` variables configured | `backend/.env` | ✅ |
+| 2026-03-28 | Fixed TypeScript errors (JWT + Prisma JSON types) | `authService.ts`, `syncService.ts` | ✅ |
+| 2026-03-28 | Next.js web app scaffolded + libraries installed | `web-app/` | ✅ |
+| 2026-03-28 | Supabase MCP configured | `.mcp.json`, `.claude/settings.local.json` | ✅ |
+| **2026-03-28** | **PHASE 0: Critical backend bug fixes** | priceService, weatherService, diseaseService, weatherSyncJob, priceSyncJob | **✅ COMPLETE** |
+| **2026-03-28** | **PHASE 1: Apify integration scaffold** | apifyClient.ts (NEW), env.ts, weatherService.ts, priceSyncJob.ts | **✅ READY** |
+| **2026-03-28** | **PHASE 2: Marketplace backend (direct farmer↔buyer)** | schema.prisma (+2 models), 4 new files (service, controller, routes, types) | **✅ COMPLETE** |
+| 2026-03-28 | Backend `npm install apify-client` — 614 packages total | `backend/package.json` | ✅ |
+| 2026-03-28 | Database schema extended to 10 tables + Supabase migrated | `marketplace_listings`, `marketplace_offers` tables live | ✅ |
+| 2026-03-28 | TypeScript compilation verified — zero errors | Backend ready to run | ✅ |
+| 2026-03-28 | Backend server tested — starts on port 5000, jobs initialize | Express + jobs startup verified | ✅ |
 
 ---
 
+## Current Status (2026-03-28)
+
+✅ **Backend**: Phase 0, 1, 2 complete. Server tested and working. Ready for frontend integration.
+🟡 **Frontend**: Being built separately by frontend developer. Use Mobbin.com for UI/UX design patterns.
+❌ **Mobile**: Deferred until web app is functional.
+
 ## Next Steps
 
-1. **Start backend**: `cd backend && npm run dev` → runs on `http://localhost:5000`
-2. **Test health**: `curl http://localhost:5000/api/v1/health`
-3. **Build web app pages**: Dashboard, Disease Detection, Market Prices, Auth screens
-4. **Mobile app**: Start after web app is functional
+1. **Frontend & Backend Integration**:
+   - Frontend dev completes pages (Dashboard, Detect, Marketplace, Weather, Prices, Auth)
+   - Merge frontend branch into main
+   - **IMPORTANT**: Backend changes are git-committed, so pulling frontend won't overwrite backend work
+
+2. **Start backend server** (for testing):
+   ```bash
+   cd backend && npm run dev
+   # Runs on http://localhost:5000
+   ```
+
+3. **Test endpoints** (once frontend is ready):
+   - Auth: POST `/api/auth/register`, POST `/api/auth/login`
+   - Disease: POST `/api/diseases/detect`
+   - Marketplace: GET, POST `/api/marketplace/listings`
+   - Weather: GET `/api/weather?latitude=X&longitude=Y`
+   - Prices: GET `/api/prices?region=Kashmir`
+
+4. **Apify Integration** (during hackathon):
+   - Get Apify API token from hackathon sponsor
+   - Add `APIFY_API_TOKEN=...` to `backend/.env`
+   - Uncomment 3 lines in `src/jobs/priceSyncJob.ts` for actor call
+   - Apify scrapes commodity prices → maps to DB crops
+
+5. **Mobile app**: Start after web app is fully functional
 
 ---
 
@@ -256,3 +296,58 @@ d:\Agriculture Advisory\
 | **Frontend Dev** | Next.js web screens | `web-app/src/app/*` pages, components |
 | **Backend Dev** | Controllers + Services | `src/controllers/*`, `src/services/*` |
 | **Presenter/DevOps** | Docs + Deployment | `README.md`, `Dockerfile`, GitHub Actions |
+
+---
+
+## 🔐 Git Workflow: Protecting Backend & Frontend Changes
+
+**Important**: When pulling frontend changes into main, backend work is protected because all backend code is committed to git.
+
+### Safe Merge Strategy
+
+**Frontend dev's branch** (`develop` or similar):
+```bash
+# Frontend dev works on: web-app/src/app/*, web-app/src/lib/*, web-app/src/components/*
+# ONLY modifies web-app/ directory (except package.json dependencies)
+```
+
+**Backend (main branch)**:
+```bash
+# Committed changes:
+# - backend/prisma/schema.prisma (+marketplace models)
+# - backend/src/**/* (all services, controllers, routes, jobs)
+# - backend/package.json (apify-client added)
+# These are safe in git and won't be overwritten
+```
+
+### Pulling Frontend Changes Without Losing Backend Work
+
+```bash
+# 1. Make sure backend changes are committed (they are)
+git status  # Should be clean or show only untracked files
+
+# 2. Fetch and merge frontend branch
+git fetch origin develop  # Or wherever frontend dev pushes
+git merge origin/develop
+
+# 3. If merge conflicts in web-app/ files:
+git diff --name-only --diff-filter=U  # Show conflicts
+# Resolve in: web-app/package.json (add new deps), web-app/src/app/*, etc.
+# Backend files won't conflict because frontend only touches web-app/
+
+# 4. Continue merge
+git add <resolved-files>
+git commit -m "Merge frontend changes"
+```
+
+### File Ownership (No Conflicts)
+
+| Path | Owner | Conflict Risk |
+|------|-------|---|
+| `backend/**` | Backend Dev | ❌ None (only backend touches) |
+| `web-app/**` | Frontend Dev | ❌ Low (only frontend touches) |
+| `mobile-app/**` | Mobile Dev (later) | ❌ None (deferred) |
+| `package.json` (root) | Both | ⚠️ Unlikely (dependency mgmt separate) |
+| `README.md`, `claude.md`, docs | Docs | ⚠️ Update together |
+
+**TL;DR**: Backend changes are committed to git. Pulling frontend branch won't delete backend work. Both teams can work in parallel with minimal conflicts.
