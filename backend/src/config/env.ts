@@ -19,7 +19,7 @@ const envSchema = z.object({
   JWT_EXPIRES_IN: z.string().default('7d'),
 
   // External APIs
-  CLAUDE_API_KEY: z.string().optional(),
+  OPENAI_API_KEY: z.string().optional(),
   OPENWEATHERMAP_API_KEY: z.string().optional(),
 
   // Server

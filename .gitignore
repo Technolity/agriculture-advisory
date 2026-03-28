@@ -2,7 +2,7 @@
 node_modules/
 .pnp
 .pnp.js
-
+.claude
 # Environment
 .env
 .env.local
@@ -50,3 +50,6 @@ android/
 # Cache
 .cache/
 *.tsbuildinfo
+
+# MCP config (contains secrets)
+.mcp.json

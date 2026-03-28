@@ -38,7 +38,7 @@ export async function processSyncQueue(
         data: {
           userId,
           actionType: item.actionType,
-          payload: item.payload,
+          payload: item.payload as object,
           priority: item.priority || SYNC_PRIORITIES.NORMAL,
         },
       });

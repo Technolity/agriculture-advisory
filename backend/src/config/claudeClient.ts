@@ -1,49 +1,40 @@
 /**
- * Claude API Client Configuration
- * Placeholder for Anthropic Claude integration
+ * OpenAI API Client Configuration
+ * Used for disease detection via GPT-4 Vision
  * @module config/claudeClient
  */
 
-import axios, { AxiosInstance } from 'axios';
+import OpenAI from 'openai';
 import { env } from './env';
 import { logger } from '../utils/logger';
 
-/** Claude API client instance */
-let claudeClient: AxiosInstance | null = null;
+let openaiClient: OpenAI | null = null;
 
 /**
- * Initialize Claude API client
+ * Initialize OpenAI client
  * Returns null if API key is not configured
  */
-export function initClaudeClient(): AxiosInstance | null {
-  if (!env.CLAUDE_API_KEY) {
-    logger.warn('CLAUDE_API_KEY not set - disease detection via Claude will be unavailable');
+export function initClaudeClient(): OpenAI | null {
+  if (!env.OPENAI_API_KEY) {
+    logger.warn('OPENAI_API_KEY not set - disease detection via AI will be unavailable');
     return null;
   }
 
-  claudeClient = axios.create({
-    baseURL: 'https://api.anthropic.com/v1',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': env.CLAUDE_API_KEY,
-      'anthropic-version': '2024-01-01',
-    },
-    timeout: 30000,
-  });
+  openaiClient = new OpenAI({ apiKey: env.OPENAI_API_KEY });
 
-  logger.info('Claude API client initialized');
-  return claudeClient;
+  logger.info('OpenAI client initialized');
+  return openaiClient;
 }
 
 /**
- * Get the Claude API client
+ * Get the OpenAI client instance
  */
-export function getClaudeClient(): AxiosInstance | null {
-  return claudeClient;
+export function getClaudeClient(): OpenAI | null {
+  return openaiClient;
 }
 
 /**
- * Placeholder: Analyze image for disease detection using Claude
+ * Analyze image for crop disease detection using GPT-4 Vision
  * @param imageBase64 - Base64 encoded image
  * @param cropName - Name of the crop for context
  * @returns Disease classification result
@@ -52,17 +43,44 @@ export async function analyzeImage(
   imageBase64: string,
   cropName?: string
 ): Promise<{ disease: string; confidence: number; treatment: string } | null> {
-  if (!claudeClient) {
-    logger.warn('Claude client not available - skipping AI analysis');
+  if (!openaiClient) {
+    logger.warn('OpenAI client not available - skipping AI analysis');
     return null;
   }
 
-  // TODO: Implement actual Claude API call for disease detection
-  // This is a placeholder that returns null
-  logger.info({ cropName }, 'Image analysis requested (placeholder)');
-  console.log(`[Claude] Would analyze image for crop: ${cropName || 'unknown'}`);
+  try {
+    const prompt = cropName
+      ? `You are an expert agricultural pathologist. Analyze this image of a ${cropName} plant and identify any crop disease. Return a JSON object with fields: disease (string), confidence (0-1 float), treatment (string). If no disease is detected, return disease: "Healthy".`
+      : `You are an expert agricultural pathologist. Analyze this crop image and identify any disease. Return a JSON object with fields: disease (string), confidence (0-1 float), treatment (string). If no disease is detected, return disease: "Healthy".`;
 
-  return null;
+    const response = await openaiClient.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: prompt },
+            {
+              type: 'image_url',
+              image_url: { url: `data:image/jpeg;base64,${imageBase64}` },
+            },
+          ],
+        },
+      ],
+      max_tokens: 300,
+      response_format: { type: 'json_object' },
+    });
+
+    const content = response.choices[0]?.message?.content;
+    if (!content) return null;
+
+    const result = JSON.parse(content);
+    logger.info({ cropName, disease: result.disease, confidence: result.confidence }, 'AI disease analysis complete');
+    return result;
+  } catch (error) {
+    logger.error({ error }, 'OpenAI image analysis failed');
+    return null;
+  }
 }
 
 export default { initClaudeClient, getClaudeClient, analyzeImage };

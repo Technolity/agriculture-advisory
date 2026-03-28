@@ -11,11 +11,13 @@
 | Field | Value |
 |-------|-------|
 | **Name** | Agricultural Advisory App |
-| **Purpose** | Offline-capable mobile app for crop disease detection + agricultural advisory |
+| **Purpose** | Offline-capable mobile app + web app for crop disease detection + agricultural advisory |
 | **Target Users** | Smallholder farmers in Kashmir and South Asia |
 | **Event** | Cursor Hackathon 2026 |
-| **Tech Stack (Frontend)** | React Native + Expo, TypeScript, Redux Toolkit, SQLite |
-| **Tech Stack (Backend)** | Node.js + Express, TypeScript, Prisma ORM, PostgreSQL |
+| **Tech Stack (Web Frontend)** | Next.js 15 (App Router), TypeScript, Tailwind CSS, Redux Toolkit, React Query, Zod |
+| **Tech Stack (Mobile)** | React Native + Expo, TypeScript, Redux Toolkit, SQLite |
+| **Tech Stack (Backend)** | Node.js + Express, TypeScript, Prisma ORM, PostgreSQL (Supabase) |
+| **AI Provider** | OpenAI GPT-4o (vision) for disease detection |
 | **Languages** | English, Urdu, Punjabi |
 | **Team Size** | 3 (Frontend Dev, Backend Dev, Presenter/DevOps) |
 
@@ -31,11 +33,13 @@ d:\Agriculture Advisory\
 ├── API_DOCUMENTATION.md         ← API endpoint docs
 ├── EDGE_CASES_DOCUMENTATION.md  ← Edge case catalog
 ├── FILES_MANIFEST.md            ← Complete file inventory
+├── .mcp.json                    ← Supabase MCP config (gitignored)
 ├── .gitignore
 │
 ├── backend/                     ← Node.js + Express API
-│   ├── package.json
+│   ├── package.json             ← includes openai, prisma, express etc.
 │   ├── tsconfig.json
+│   ├── .env                     ← REAL env file (gitignored) — fully configured
 │   ├── .env.example
 │   ├── Dockerfile
 │   ├── jest.config.ts
@@ -43,7 +47,11 @@ d:\Agriculture Advisory\
 │   │   └── schema.prisma        ← DATABASE SCHEMA (8 tables)
 │   ├── src/
 │   │   ├── index.ts             ← Express entry point
-│   │   ├── config/              ← database, redis, env, claudeClient
+│   │   ├── config/
+│   │   │   ├── database.ts      ← Prisma client
+│   │   │   ├── redis.ts         ← Redis client
+│   │   │   ├── env.ts           ← Zod-validated env (uses OPENAI_API_KEY)
+│   │   │   └── claudeClient.ts  ← OpenAI GPT-4o Vision client (renamed from Claude)
 │   │   ├── routes/              ← 7 route files
 │   │   ├── controllers/         ← 7 controllers
 │   │   ├── services/            ← 6 services
@@ -53,35 +61,39 @@ d:\Agriculture Advisory\
 │   │   └── types/               ← TypeScript interfaces
 │   └── tests/                   ← Test scaffolds
 │
-├── mobile-app/                  ← React Native + Expo
+├── web-app/                     ← Next.js 15 web frontend (NEW)
 │   ├── package.json
 │   ├── tsconfig.json
-│   ├── app.json
-│   ├── app.tsx                  ← App entry point
-│   ├── .env.example
-│   ├── babel.config.js
-│   ├── src/
-│   │   ├── navigation/          ← BottomTabNavigator
-│   │   ├── screens/             ← 6 screens
-│   │   ├── components/          ← 8 components
-│   │   ├── services/            ← 5 services
-│   │   ├── hooks/               ← 5 hooks
-│   │   ├── store/               ← Redux store + 4 slices
-│   │   ├── utils/               ← constants, validators, cropDatabase, diseaseMapping, translations/
-│   │   ├── types/               ← TypeScript interfaces
-│   │   └── assets/              ← models, images, offline-data
-│   └── tests/                   ← Test scaffolds
+│   ├── next.config.ts
+│   ├── tailwind.config.ts
+│   └── src/
+│       └── app/                 ← Next.js App Router pages (to be built)
+│
+└── mobile-app/                  ← React Native + Expo (deferred — web first)
+    ├── package.json
+    ├── app.tsx
+    └── src/
+        ├── navigation/          ← BottomTabNavigator
+        ├── screens/             ← 6 screens
+        ├── components/          ← 8 components
+        ├── services/            ← 5 services
+        ├── hooks/               ← 5 hooks
+        ├── store/               ← Redux store + 4 slices
+        ├── utils/               ← constants, validators, cropDatabase, diseaseMapping, translations/
+        └── types/
 ```
 
 ---
 
-## Database Schema
+## Database (Supabase — LIVE)
 
-**ORM**: Prisma  
-**Database**: PostgreSQL  
-**Schema File**: `backend/prisma/schema.prisma`
+**Provider**: Supabase (cloud PostgreSQL)
+**Project ID**: `dfxmprydktoybadlpvxs`
+**Project URL**: `https://dfxmprydktoybadlpvxs.supabase.co`
+**ORM**: Prisma (client generated)
+**Migration**: Applied via Supabase MCP on 2026-03-28
 
-### Tables (8)
+### Tables (8) — All live in Supabase
 
 | Table | Purpose | Key Fields |
 |-------|---------|-----------|
@@ -105,6 +117,48 @@ d:\Agriculture Advisory\
 
 ---
 
+## Backend Environment Variables (`backend/.env`) — CONFIGURED
+
+| Variable | Status | Value/Notes |
+|----------|--------|-------------|
+| `DATABASE_URL` | ✅ Set | Supabase PostgreSQL (password URL-encoded) |
+| `REDIS_URL` | ✅ Set | `redis://localhost:6379` (update for hosted Redis) |
+| `JWT_SECRET` | ✅ Set | Custom secret set |
+| `JWT_EXPIRES_IN` | ✅ Set | `7d` |
+| `OPENAI_API_KEY` | ✅ Set | GPT-4o for disease detection |
+| `OPENWEATHERMAP_API_KEY` | ✅ Set | Key configured |
+| `PORT` | ✅ Set | `5000` |
+
+---
+
+## AI Provider — OpenAI GPT-4o Vision
+
+> **Note:** The original scaffold used Anthropic Claude. This was switched to OpenAI GPT-4o.
+
+- **File**: `backend/src/config/claudeClient.ts` (filename kept for import compatibility)
+- **Model**: `gpt-4o` with vision capability
+- **Use case**: Disease detection from base64 crop images
+- **Env var**: `OPENAI_API_KEY` (updated in `env.ts` Zod schema)
+- **Response format**: `{ disease: string, confidence: number, treatment: string }`
+
+---
+
+## Web App Libraries (`web-app/`) — INSTALLED
+
+| Library | Purpose |
+|---------|---------|
+| `next` 15, `react`, `react-dom` | Core framework |
+| `tailwindcss` | Styling |
+| `axios` | API calls to backend |
+| `@reduxjs/toolkit`, `react-redux` | State management |
+| `react-hook-form`, `@hookform/resolvers`, `zod` | Forms + validation |
+| `@tanstack/react-query` | Data fetching/caching |
+| `lucide-react` | Icons |
+| `js-cookie`, `jwt-decode` | Auth token handling |
+| `sonner` | Toast notifications |
+
+---
+
 ## API Routes
 
 | Method | Path | Auth | Controller | Status |
@@ -118,17 +172,6 @@ d:\Agriculture Advisory\
 | GET | `/api/prices` | Optional | priceController | ✅ Scaffolded |
 | POST | `/api/sync/queue` | Required | syncController | ✅ Scaffolded |
 | GET | `/health` | No | healthController | ✅ Scaffolded |
-
----
-
-## Redux Store (Mobile)
-
-| Slice | Purpose | Key State |
-|-------|---------|-----------|
-| `app` | Global app state | networkStatus, syncStatus, language, pendingSyncCount |
-| `crops` | Crop data | crops[], selectedCrop, diseases[], isLoading |
-| `disease` | Disease detection | detections[], currentDetection, currentImage, isProcessing |
-| `user` | Auth & profile | user, token, isAuthenticated |
 
 ---
 
@@ -151,32 +194,33 @@ d:\Agriculture Advisory\
 
 ## Finalized Files
 
-> All files listed below are **scaffolded and ready** for team development.
-> Status: ✅ = complete scaffold | 🟡 = needs implementation | ❌ = not started
+> Status: ✅ = complete | 🟡 = needs implementation | ❌ = not started
 
 ### Backend
-- ✅ `prisma/schema.prisma` — Complete with 8 tables and indices
+- ✅ `prisma/schema.prisma` — 8 tables, all live in Supabase
+- ✅ `.env` — Fully configured (Supabase, OpenAI, OpenWeatherMap, JWT)
 - ✅ `src/index.ts` — Express app with all middleware wired
-- ✅ `src/config/*` — database, redis, env, claudeClient
+- ✅ `src/config/env.ts` — Uses `OPENAI_API_KEY`
+- ✅ `src/config/claudeClient.ts` — OpenAI GPT-4o Vision (filename kept for compatibility)
+- ✅ `src/config/database.ts`, `redis.ts` — Configured
 - ✅ `src/routes/*` — All 7 route files
 - ✅ `src/controllers/*` — All 7 controllers
-- ✅ `src/services/*` — All 6 services (authService has real logic)
+- ✅ `src/services/authService.ts` — Fixed JWT type error
+- ✅ `src/services/syncService.ts` — Fixed Prisma JSON type error
+- ✅ `src/services/*` — All 6 services
 - ✅ `src/middleware/*` — All 6 middleware files
 - ✅ `src/utils/*` — logger, imageProcessing, validators, constants
-- ✅ `src/jobs/*` — 3 job files (placeholder)
+- ✅ `src/jobs/*` — 3 job files (placeholder logic)
 - ✅ `src/types/index.ts` — Complete type definitions
 
-### Mobile
-- ✅ `app.tsx` — App entry with Redux, Navigation, ErrorBoundary
-- ✅ `src/navigation/BottomTabNavigator.tsx` — 5 tabs
-- ✅ `src/screens/*` — All 6 screens
-- ✅ `src/components/*` — All 8 components
-- ✅ `src/services/*` — All 5 services
-- ✅ `src/hooks/*` — All 5 hooks
-- ✅ `src/store/*` — Redux store + 4 slices
-- ✅ `src/utils/*` — constants, validators, cropDatabase, diseaseMapping
-- ✅ `src/utils/translations/*` — en, ur, pb JSON files
-- ✅ `src/types/index.ts` — Complete type definitions
+### Web App (Next.js)
+- ✅ Scaffolded with `create-next-app` (App Router, TypeScript, Tailwind)
+- ✅ All libraries installed
+- 🟡 Pages/screens — not yet built (next priority)
+
+### Mobile (deferred — web first)
+- ✅ All files scaffolded (87+ files)
+- 🟡 Implementation pending
 
 ---
 
@@ -184,18 +228,24 @@ d:\Agriculture Advisory\
 
 | Date | Change | Files Affected |
 |------|--------|---------------|
-| 2026-03-28 | Initial scaffold - Complete project foundation | All 87+ files |
+| 2026-03-28 | Initial scaffold — complete project foundation | All 87+ files |
+| 2026-03-28 | Backend `npm install` — 547 packages installed | `backend/node_modules` |
+| 2026-03-28 | Switched AI provider: Anthropic → OpenAI GPT-4o | `claudeClient.ts`, `env.ts`, `.env`, `package.json` |
+| 2026-03-28 | Database migrated to Supabase — all 8 tables live | Supabase project `dfxmprydktoybadlpvxs` |
+| 2026-03-28 | Prisma client generated | `node_modules/@prisma/client` |
+| 2026-03-28 | All `.env` variables configured | `backend/.env` |
+| 2026-03-28 | Fixed TypeScript errors (JWT + Prisma JSON types) | `authService.ts`, `syncService.ts` |
+| 2026-03-28 | Next.js web app scaffolded + libraries installed | `web-app/` |
+| 2026-03-28 | Supabase MCP configured | `.mcp.json`, `.claude/settings.local.json` |
 
 ---
 
 ## Next Steps
 
-1. **Run `npm install`** in both `/backend` and `/mobile-app`
-2. **Set up PostgreSQL** and update `.env` with connection string
-3. **Run `npx prisma generate`** to create Prisma client
-4. **Start backend**: `cd backend && npm run dev`
-5. **Start mobile**: `cd mobile-app && npx expo start`
-6. **Begin implementation**: Fill in service logic, screen UI, controller implementations
+1. **Start backend**: `cd backend && npm run dev` → runs on `http://localhost:5000`
+2. **Test health**: `curl http://localhost:5000/api/v1/health`
+3. **Build web app pages**: Dashboard, Disease Detection, Market Prices, Auth screens
+4. **Mobile app**: Start after web app is functional
 
 ---
 
@@ -203,6 +253,6 @@ d:\Agriculture Advisory\
 
 | Team Member | Focus Area | Priority Files |
 |-------------|-----------|---------------|
-| **Frontend Dev** | Screens + Components | `src/screens/*`, `src/components/*`, `src/services/*` |
-| **Backend Dev** | Controllers + Services | `src/controllers/*`, `src/services/*`, `prisma/schema.prisma` |
-| **Presenter/DevOps** | Docs + Deployment | `README.md`, `Dockerfile`, GitHub Actions, Demo prep |
+| **Frontend Dev** | Next.js web screens | `web-app/src/app/*` pages, components |
+| **Backend Dev** | Controllers + Services | `src/controllers/*`, `src/services/*` |
+| **Presenter/DevOps** | Docs + Deployment | `README.md`, `Dockerfile`, GitHub Actions |
