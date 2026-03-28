@@ -1,0 +1,79 @@
+{
+  "common": {
+    "appName": "Agricultural Advisory",
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "retry": "Try Again",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "confirm": "Confirm",
+    "back": "Back",
+    "next": "Next",
+    "done": "Done",
+    "search": "Search",
+    "filter": "Filter",
+    "offline": "You are offline",
+    "online": "Back online",
+    "syncing": "Syncing data...",
+    "syncComplete": "Sync complete"
+  },
+  "home": {
+    "welcome": "Welcome",
+    "dashboard": "Your agricultural advisory dashboard",
+    "quickActions": "Quick Actions",
+    "recentActivity": "Recent Activity",
+    "noActivity": "No recent activity",
+    "detectDisease": "Detect Disease",
+    "myCrops": "My Crops",
+    "marketPrices": "Market Prices",
+    "plantingGuide": "Planting Guide"
+  },
+  "disease": {
+    "title": "Disease Detection",
+    "description": "Take a photo of your crop to identify diseases",
+    "openCamera": "Open Camera",
+    "uploadGallery": "Upload from Gallery",
+    "analyzing": "Analyzing image...",
+    "result": "Detection Result",
+    "confidence": "Confidence",
+    "treatment": "Treatment",
+    "severity": "Severity",
+    "retake": "Take Another Photo",
+    "feedback": "Was this helpful?",
+    "permissionDenied": "Camera access denied"
+  },
+  "crops": {
+    "title": "Planting Guide",
+    "subtitle": "Season-specific crop guidance",
+    "noCrops": "No crops loaded",
+    "season": "Season",
+    "region": "Region",
+    "waterNeeds": "Water Needs",
+    "soilType": "Soil Type",
+    "plantingMonth": "Planting Month",
+    "harvestMonth": "Harvest Month"
+  },
+  "prices": {
+    "title": "Market Prices",
+    "subtitle": "Latest prices from local markets",
+    "region": "Region",
+    "crop": "Crop",
+    "price": "Price",
+    "unit": "Unit",
+    "trend": "Trend",
+    "lastUpdated": "Last updated"
+  },
+  "settings": {
+    "title": "Settings",
+    "profile": "Profile",
+    "language": "Language",
+    "syncStatus": "Sync Status",
+    "preferences": "Preferences",
+    "notifications": "Notifications",
+    "autoSync": "Auto-sync on WiFi",
+    "highQuality": "High-quality images",
+    "about": "About",
+    "logout": "Logout"
+  }
+}

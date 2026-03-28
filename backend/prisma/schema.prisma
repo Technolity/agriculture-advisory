@@ -1,0 +1,186 @@
+// Prisma Schema for Agricultural Advisory App
+// Database: PostgreSQL
+// Tables: 8 (users, crops, diseases, disease_detections, weather_data, market_prices, sync_queue, sessions)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// User accounts and preferences
+model User {
+  id          String   @id @default(uuid())
+  email       String   @unique
+  phone       String?  @unique
+  passwordHash String  @map("password_hash")
+  name        String
+  language    String   @default("en") // en, ur, pb
+  region      String?
+  latitude    Float?
+  longitude   Float?
+  deviceId    String?  @map("device_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at") // Soft delete
+
+  // Relations
+  diseaseDetections DiseaseDetection[]
+  weatherData       WeatherData[]
+  syncQueue         SyncQueue[]
+  sessions          Session[]
+
+  @@map("users")
+}
+
+/// Crop reference data with multilingual names
+model Crop {
+  id            String   @id @default(uuid())
+  name          String
+  nameUrdu      String?  @map("name_urdu")
+  namePunjabi   String?  @map("name_punjabi")
+  region        String
+  season        String   // rabi, kharif, zaid
+  plantingMonth Int      @map("planting_month")
+  harvestMonth  Int      @map("harvest_month")
+  waterNeeds    String   @map("water_needs") // low, medium, high
+  soilType      String   @map("soil_type")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  diseases          Disease[]
+  diseaseDetections DiseaseDetection[]
+  marketPrices      MarketPrice[]
+
+  @@map("crops")
+}
+
+/// Disease reference data linked to crops
+model Disease {
+  id             String   @id @default(uuid())
+  cropId         String   @map("crop_id")
+  name           String
+  nameUrdu       String?  @map("name_urdu")
+  symptoms       String   @db.Text
+  treatment      String   @db.Text
+  treatmentUrdu  String?  @map("treatment_urdu") @db.Text
+  severityLevel  String   @map("severity_level") // low, medium, high, critical
+  tfliteClassId  Int?     @map("tflite_class_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  crop              Crop               @relation(fields: [cropId], references: [id])
+  diseaseDetections DiseaseDetection[]
+
+  @@index([cropId], name: "idx_disease_crop")
+  @@map("diseases")
+}
+
+/// User disease detection history
+model DiseaseDetection {
+  id               String    @id @default(uuid())
+  userId           String    @map("user_id")
+  cropId           String?   @map("crop_id")
+  diseaseId        String?   @map("disease_id")
+  imageUrl         String?   @map("image_url")
+  imageHash        String?   @map("image_hash") // SHA256 for deduplication
+  tfliteConfidence Float?    @map("tflite_confidence")
+  claudeConfidence Float?    @map("claude_confidence")
+  isCorrect        Boolean?  @map("is_correct")
+  userFeedback     String?   @map("user_feedback") @db.Text
+  offlineCreatedAt DateTime? @map("offline_created_at")
+  syncedAt         DateTime? @map("synced_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  user    User     @relation(fields: [userId], references: [id])
+  crop    Crop?    @relation(fields: [cropId], references: [id])
+  disease Disease? @relation(fields: [diseaseId], references: [id])
+
+  @@index([userId], name: "idx_detection_user")
+  @@index([imageHash], name: "idx_detection_image_hash")
+  @@map("disease_detections")
+}
+
+/// Cached weather information
+model WeatherData {
+  id          String   @id @default(uuid())
+  userId      String?  @map("user_id")
+  latitude    Float
+  longitude   Float
+  temperature Float?
+  humidity    Float?
+  rainfall    Float?
+  windSpeed   Float?   @map("wind_speed")
+  condition   String?
+  forecastDate DateTime @map("forecast_date")
+  lastSynced  DateTime @default(now()) @map("last_synced")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([latitude, longitude], name: "idx_weather_location")
+  @@map("weather_data")
+}
+
+/// Market price data by region
+model MarketPrice {
+  id           String   @id @default(uuid())
+  cropId       String   @map("crop_id")
+  marketName   String   @map("market_name")
+  marketRegion String   @map("market_region")
+  pricePerUnit Float    @map("price_per_unit")
+  unit         String   // kg, quintal, ton
+  lastUpdated  DateTime @default(now()) @map("last_updated")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  // Relations
+  crop Crop @relation(fields: [cropId], references: [id])
+
+  @@index([cropId], name: "idx_price_crop")
+  @@index([marketRegion], name: "idx_price_region")
+  @@map("market_prices")
+}
+
+/// Offline action queue for sync
+model SyncQueue {
+  id         String    @id @default(uuid())
+  userId     String    @map("user_id")
+  actionType String    @map("action_type") // disease_detection, feedback, settings_update
+  payload    Json
+  priority   Int       @default(0) // 0 = normal, 1 = high, 2 = critical
+  retryCount Int       @default(0) @map("retry_count")
+  lastError  String?   @map("last_error") @db.Text
+  syncedAt   DateTime? @map("synced_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, syncedAt], name: "idx_sync_queue_user")
+  @@index([priority, createdAt], name: "idx_sync_queue_priority")
+  @@map("sync_queue")
+}
+
+/// Active user sessions
+model Session {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  token     String   @unique
+  expiresAt DateTime @map("expires_at")
+  deviceId  String?  @map("device_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId], name: "idx_session_user")
+  @@index([token], name: "idx_session_token")
+  @@map("sessions")
+}

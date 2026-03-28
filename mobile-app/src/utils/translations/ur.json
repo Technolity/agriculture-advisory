@@ -1,0 +1,46 @@
+{
+  "common": {
+    "appName": "زرعی مشاورت",
+    "loading": "لوڈ ہو رہا ہے...",
+    "error": "ایک خرابی پیش آئی",
+    "retry": "دوبارہ کوشش کریں",
+    "cancel": "منسوخ",
+    "save": "محفوظ",
+    "delete": "حذف",
+    "confirm": "تصدیق",
+    "back": "واپس",
+    "next": "اگلا",
+    "done": "مکمل",
+    "search": "تلاش",
+    "filter": "فلٹر",
+    "offline": "آپ آف لائن ہیں",
+    "online": "واپس آن لائن",
+    "syncing": "ڈیٹا مطابقت پذیر ہو رہا ہے...",
+    "syncComplete": "مطابقت پذیری مکمل"
+  },
+  "home": {
+    "welcome": "خوش آمدید",
+    "dashboard": "آپ کا زرعی مشاورت ڈیش بورڈ",
+    "quickActions": "فوری اعمال",
+    "recentActivity": "حالیہ سرگرمی",
+    "noActivity": "کوئی حالیہ سرگرمی نہیں",
+    "detectDisease": "بیماری کا پتہ لگائیں",
+    "myCrops": "میری فصلیں",
+    "marketPrices": "منڈی کی قیمتیں",
+    "plantingGuide": "کاشت گائیڈ"
+  },
+  "disease": {
+    "title": "بیماری کا پتہ لگانا",
+    "description": "بیماریوں کی شناخت کے لیے اپنی فصل کی تصویر لیں",
+    "openCamera": "کیمرہ کھولیں",
+    "uploadGallery": "گیلری سے اپ لوڈ کریں",
+    "analyzing": "تصویر کا تجزیہ ہو رہا ہے...",
+    "result": "نتیجہ",
+    "confidence": "اعتماد",
+    "treatment": "علاج",
+    "severity": "شدت",
+    "retake": "دوبارہ تصویر لیں",
+    "feedback": "کیا یہ مددگار تھا؟",
+    "permissionDenied": "کیمرے تک رسائی سے انکار"
+  }
+}
