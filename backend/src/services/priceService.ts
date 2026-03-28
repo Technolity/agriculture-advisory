@@ -58,10 +58,12 @@ export async function updateMarketPrice(
 
   const price = await prisma.marketPrice.upsert({
     where: {
-      id: `${cropId}-${marketName}`, // This would need a composite key - simplified for scaffold
+      unique_crop_market: { cropId, marketName },
     },
     update: {
       pricePerUnit,
+      marketRegion,
+      unit,
       lastUpdated: new Date(),
     },
     create: {

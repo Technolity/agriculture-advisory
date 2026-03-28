@@ -25,6 +25,8 @@ const envSchema = z.object({
   // External APIs
   OPENAI_API_KEY: z.string().optional(),
   OPENWEATHERMAP_API_KEY: z.string().optional(),
+  APIFY_API_TOKEN: z.string().optional(),
+  WEATHER_PROVIDER: z.enum(['openweathermap', 'apify']).default('openweathermap'),
 
   // Server
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),

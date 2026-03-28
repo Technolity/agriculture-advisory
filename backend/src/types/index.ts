@@ -83,7 +83,7 @@ export interface DiseaseDetectionInput {
 
 /** Disease detection result */
 export interface DiseaseDetectionResult {
-  diseaseId: string;
+  diseaseId?: string;
   diseaseName: string;
   confidence: number;
   severity: string;
@@ -167,4 +167,47 @@ export interface CropFilter {
   region?: string;
   season?: string;
   search?: string;
+}
+
+// ============================================================
+// Marketplace Types
+// ============================================================
+
+/** Marketplace listing input */
+export interface MarketplaceListingInput {
+  cropId: string;
+  quantity: number;
+  unit: string;
+  pricePerUnit: number;
+  location: string;
+  description?: string;
+  contactPhone?: string;
+  contactEmail?: string;
+  imageUrls?: string[];
+}
+
+/** Marketplace listing response */
+export interface MarketplaceListingResponse {
+  id: string;
+  sellerId: string;
+  cropId: string;
+  quantity: number;
+  unit: string;
+  pricePerUnit: number;
+  location: string;
+  description?: string;
+  imageUrls: string[];
+  status: 'active' | 'sold' | 'expired';
+  expiresAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Marketplace listing filter */
+export interface ListingFilter {
+  region?: string;
+  cropId?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  status?: 'active' | 'sold' | 'expired';
 }

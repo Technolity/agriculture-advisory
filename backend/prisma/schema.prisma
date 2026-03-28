@@ -28,10 +28,12 @@ model User {
   deletedAt   DateTime? @map("deleted_at") // Soft delete
 
   // Relations
-  diseaseDetections DiseaseDetection[]
-  weatherData       WeatherData[]
-  syncQueue         SyncQueue[]
-  sessions          Session[]
+  diseaseDetections    DiseaseDetection[]
+  weatherData          WeatherData[]
+  syncQueue            SyncQueue[]
+  sessions             Session[]
+  marketplaceListings  MarketplaceListing[]
+  marketplaceOffers    MarketplaceOffer[]
 
   @@map("users")
 }
@@ -52,9 +54,10 @@ model Crop {
   updatedAt     DateTime @updatedAt @map("updated_at")
 
   // Relations
-  diseases          Disease[]
-  diseaseDetections DiseaseDetection[]
-  marketPrices      MarketPrice[]
+  diseases             Disease[]
+  diseaseDetections    DiseaseDetection[]
+  marketPrices         MarketPrice[]
+  marketplaceListings  MarketplaceListing[]
 
   @@map("crops")
 }
@@ -143,6 +146,7 @@ model MarketPrice {
   // Relations
   crop Crop @relation(fields: [cropId], references: [id])
 
+  @@unique([cropId, marketName], name: "unique_crop_market")
   @@index([cropId], name: "idx_price_crop")
   @@index([marketRegion], name: "idx_price_region")
   @@map("market_prices")
@@ -183,4 +187,52 @@ model Session {
   @@index([userId], name: "idx_session_user")
   @@index([token], name: "idx_session_token")
   @@map("sessions")
+}
+
+/// Direct farmer-to-buyer marketplace listings
+model MarketplaceListing {
+  id            String   @id @default(uuid())
+  sellerId      String   @map("seller_id")
+  cropId        String   @map("crop_id")
+  quantity      Float
+  unit          String   // kg, quintal, ton, bags
+  pricePerUnit  Float    @map("price_per_unit")
+  location      String
+  description   String?  @db.Text
+  imageUrls     String[] @map("image_urls")
+  status        String   @default("active") // active, sold, expired
+  contactPhone  String?  @map("contact_phone")
+  contactEmail  String?  @map("contact_email")
+  expiresAt     DateTime? @map("expires_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  seller User                @relation(fields: [sellerId], references: [id])
+  crop   Crop                @relation(fields: [cropId], references: [id])
+  offers MarketplaceOffer[]
+
+  @@index([sellerId], name: "idx_listing_seller")
+  @@index([cropId], name: "idx_listing_crop")
+  @@index([status, createdAt], name: "idx_listing_status")
+  @@index([location], name: "idx_listing_location")
+  @@map("marketplace_listings")
+}
+
+/// Buyer offers on marketplace listings
+model MarketplaceOffer {
+  id        String   @id @default(uuid())
+  listingId String   @map("listing_id")
+  buyerId   String   @map("buyer_id")
+  offerPrice Float   @map("offer_price")
+  message   String?  @db.Text
+  status    String   @default("pending") // pending, accepted, rejected
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  listing MarketplaceListing @relation(fields: [listingId], references: [id])
+  buyer   User               @relation(fields: [buyerId], references: [id])
+
+  @@index([listingId], name: "idx_offer_listing")
+  @@map("marketplace_offers")
 }

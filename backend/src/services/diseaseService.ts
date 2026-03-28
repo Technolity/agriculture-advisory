@@ -64,28 +64,70 @@ export async function detectDisease(
     cropName = crop?.name;
   }
 
-  // Call Claude API for analysis (placeholder)
+  // Call OpenAI API for analysis
   const aiResult = await analyzeImage(
     imageBuffer.toString('base64'),
     cropName
   );
 
-  // TODO: Match AI result to disease in database
-  // TODO: Store detection record
-  // For now, log and return null
-  logger.info({ userId, cropId, imageHash, aiResult }, 'Disease detection processed (placeholder)');
+  if (!aiResult) {
+    logger.warn({ userId, cropId }, 'AI analysis failed to return result');
+    return null;
+  }
+
+  // Match AI result to disease in database
+  let diseaseId: string | undefined;
+  let disease: any = null;
+
+  if (cropId && aiResult.disease) {
+    // Try to find matching disease by name (case-insensitive) for the given crop
+    disease = await prisma.disease.findFirst({
+      where: {
+        cropId,
+        name: { contains: aiResult.disease, mode: 'insensitive' },
+      },
+    });
+  }
+
+  // If crop-specific search fails, try across all crops
+  if (!disease && aiResult.disease) {
+    disease = await prisma.disease.findFirst({
+      where: {
+        name: { contains: aiResult.disease, mode: 'insensitive' },
+      },
+    });
+  }
+
+  if (disease) {
+    diseaseId = disease.id;
+  }
 
   // Create detection record
-  await prisma.diseaseDetection.create({
+  const detection = await prisma.diseaseDetection.create({
     data: {
       userId,
       cropId,
+      diseaseId,
       imageHash,
-      claudeConfidence: aiResult?.confidence,
+      claudeConfidence: aiResult.confidence,
     },
+    include: { disease: true },
   });
 
-  return null;
+  logger.info(
+    { userId, cropId, diseaseId, confidence: aiResult.confidence },
+    'Disease detection completed'
+  );
+
+  // Return the result
+  return {
+    diseaseId: diseaseId,
+    diseaseName: disease?.name || aiResult.disease,
+    confidence: aiResult.confidence,
+    severity: disease?.severityLevel || 'unknown',
+    treatment: disease?.treatment || aiResult.treatment,
+    treatmentUrdu: disease?.treatmentUrdu,
+  };
 }
 
 /**

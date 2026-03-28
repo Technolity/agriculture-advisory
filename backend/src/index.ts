@@ -25,6 +25,11 @@ import weatherRoutes from './routes/weather.routes';
 import priceRoutes from './routes/prices.routes';
 import syncRoutes from './routes/sync.routes';
 import healthRoutes from './routes/health.routes';
+import marketplaceRoutes from './routes/marketplace.routes';
+
+// Import background jobs
+import { startWeatherSyncJob } from './jobs/weatherSyncJob';
+import { startPriceSyncJob } from './jobs/priceSyncJob';
 
 const app = express();
 
@@ -49,6 +54,7 @@ app.use(`${API_PREFIX}/diseases`, diseaseRoutes);
 app.use(`${API_PREFIX}/weather`, weatherRoutes);
 app.use(`${API_PREFIX}/prices`, priceRoutes);
 app.use(`${API_PREFIX}/sync`, syncRoutes);
+app.use(`${API_PREFIX}/marketplace`, marketplaceRoutes);
 app.use('/health', healthRoutes);
 
 // Root endpoint
@@ -80,8 +86,12 @@ async function startServer(): Promise<void> {
     // Initialize Redis (optional - graceful fallback)
     await initRedis();
 
-    // Initialize Claude API client (optional)
+    // Initialize OpenAI API client (optional)
     initClaudeClient();
+
+    // Start background jobs
+    startWeatherSyncJob();
+    startPriceSyncJob();
 
     // Start HTTP server
     const server = app.listen(env.PORT, env.HOST, () => {

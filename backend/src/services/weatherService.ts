@@ -55,19 +55,56 @@ export async function getWeather(
   }
 
   try {
-    // TODO: Implement actual OpenWeatherMap API call
-    // const response = await axios.get(
-    //   `https://api.openweathermap.org/data/2.5/weather`,
-    //   {
-    //     params: { lat: latitude, lon: longitude, appid: env.OPENWEATHERMAP_API_KEY, units: 'metric' },
-    //     timeout: WEATHER_API_TIMEOUT,
-    //   }
-    // );
+    // Determine which provider to use (environment variable or default to openweathermap)
+    const provider = env.WEATHER_PROVIDER || 'openweathermap';
 
-    logger.info({ latitude, longitude }, 'Weather API call (placeholder)');
-    console.log(`[Weather] Would fetch weather for ${latitude}, ${longitude}`);
+    if (provider === 'apify') {
+      // TODO: Implement Apify weather actor call
+      logger.info({ latitude, longitude }, 'Apify weather provider selected but not yet implemented');
+      return null;
+    }
 
-    return null;
+    // Primary: OpenWeatherMap
+    const response = await axios.get(
+      `https://api.openweathermap.org/data/2.5/weather`,
+      {
+        params: {
+          lat: latitude,
+          lon: longitude,
+          appid: env.OPENWEATHERMAP_API_KEY,
+          units: 'metric',
+        },
+        timeout: WEATHER_API_TIMEOUT,
+      }
+    );
+
+    const { main, weather, wind } = response.data;
+    const weatherData = {
+      latitude,
+      longitude,
+      temperature: main.temp,
+      humidity: main.humidity,
+      condition: weather[0]?.main || 'unknown',
+      windSpeed: wind?.speed || 0,
+      rainfall: 0, // OpenWeatherMap requires separate call for rainfall
+      forecastDate: new Date(),
+    };
+
+    // Store in cache
+    const cached = await prisma.weatherData.create({
+      data: weatherData,
+    });
+
+    logger.info({ latitude, longitude, temperature: main.temp }, 'Weather data fetched and cached');
+
+    return {
+      temperature: cached.temperature || 0,
+      humidity: cached.humidity || 0,
+      rainfall: cached.rainfall || 0,
+      windSpeed: cached.windSpeed || 0,
+      condition: cached.condition || 'unknown',
+      forecastDate: cached.forecastDate.toISOString(),
+    };
   } catch (error) {
     logger.error({ error, latitude, longitude }, 'Weather API call failed');
     return null;
